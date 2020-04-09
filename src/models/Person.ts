@@ -6,11 +6,13 @@ export class Person {
     y: number;
     dx: number;
     dy: number;
-    constructor(x: number = 0, y: number = 0, dx: number = 0, dy: number = 0) {
+    infected: boolean;
+    constructor(x: number = 0, y: number = 0, dx: number = 0, dy: number = 0, infected = false) {
         this.x = x;
         this.y = y;
         this.dx = dx;
         this.dy = dy;
+        this.infected = infected;
     }
     step(drag: number = 1) {
         this.dx = this.dx * drag;
@@ -21,7 +23,7 @@ export class Person {
     draw(ctx: CanvasRenderingContext2D) {
         ctx.beginPath();
         ctx.arc(this.x, this.y, rad, 0, piRad, false);
-        // ctx.fillStyle = 'green';
+        ctx.fillStyle = this.infected ? 'red' : 'green';
         ctx.fill();
         // ctx.lineWidth = 5;
         // ctx.strokeStyle = '#003300';
