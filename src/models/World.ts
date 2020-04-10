@@ -1,58 +1,68 @@
+'use strict';
+import simParameters from '../simParameters';
 import { Person } from './Person';
 
-const simParameters = {
-    numberOfP: 10,
-    gForce: 0,
-    boundElasticity: 0.99,
-    drag: 1,
-    infectionProbability: 0.5,
-    infectRadius: 10,
-    numberInfected: 1
-}
+const totalEnergyElement = document.getElementById('totalEnergy') as HTMLSpanElement;
+const timeInfectedElement = document.getElementById('totalInfected') as HTMLSpanElement;
+const timeStepElement = document.getElementById('timeStep') as HTMLSpanElement;
 
-const totalEElement = document.getElementById('totalE') as HTMLSpanElement;
 
-const calcGravity = (allPeople: Array<Person>) => {
+const calcInteractions = (allPeople: Array<Person>) => {
+    const infection = (p1: Person, p2: Person, distance: number) => {
+        const interactionOutcome = () => Math.random() < simParameters.infectionProbability;
+        if (distance > simParameters.infectRadius) {
+            return;
+        }
+        if (p1.status === 1 && p2.status === 0 && interactionOutcome()) {
+            p2.infect(simParameters.timeStep);
+        }
+        if (p2.status === 1 && p1.status === 0 && interactionOutcome()) {
+            p1.infect(simParameters.timeStep);
+        }
+    };
+    const motion = (p1: Person, p2: Person, distance: number, distanceSquare: number, diffX: number, diffY: number) => {
+        if (distance - 1 > rad / 2 + rad / 2) {
+            const totalForce = simParameters.gForce / distanceSquare;
+            const deltaX = totalForce * diffX / distance;
+            const deltaY = totalForce * diffY / distance;
+            p1.dx += deltaX;
+            p1.dy += deltaY;
+            p2.dx -= deltaX;
+            p2.dy -= deltaY;
+        }
+    };
     const rad = 2;
     for (let i = 0; i < allPeople.length; i++) {
+        const p1 = allPeople[i];
         for (let j = i + 1; j < allPeople.length; j++) {
+            const p2 = allPeople[j];
             if (i !== j) {
-                var diffX = allPeople[j].x - allPeople[i].x;
-                var diffY = allPeople[j].y - allPeople[i].y;
-                var distanceSquare = diffX * diffX + diffY * diffY;
-                var distance = Math.pow(distanceSquare, 0.5);
-                if (distance - 1 > rad / 2 + rad / 2) {
-                    var totalForce = simParameters.gForce / distanceSquare;
-                    const deltaX = totalForce * diffX / distance;
-                    const deltaY = totalForce * diffY / distance;
-                    allPeople[i].dx += deltaX;
-                    allPeople[i].dy += deltaY;
-                    allPeople[j].dx -= deltaX;
-                    allPeople[j].dy -= deltaY;
-                } else {
-                    // var tempX = (p.dx + obj2.dx) / 2;
-                    // var tempY = (p.dy + obj2.dy) / 2;
-                    // p.dx = tempX; obj2.dx = tempX;
-                    // p.dy = tempY; obj2.dy = tempY;
-                }
-                if (allPeople[i].infected && distance < simParameters.infectRadius) {
-                    allPeople[j].infected = Boolean(Math.round(Math.random() + simParameters.infectionProbability));
-                }
-                if (allPeople[j].infected && distance < simParameters.infectRadius) {
-                    allPeople[i].infected = Boolean(Math.round(Math.random() + simParameters.infectionProbability));
-                }
-
+                const diffX = p2.x - p1.x;
+                const diffY = p2.y - p1.y;
+                const distanceSquare = diffX * diffX + diffY * diffY;
+                const distance = Math.pow(distanceSquare, 0.5);
+                motion(p1, p2, distance, distanceSquare, diffX, diffY);
+                infection(p1, p2, distance);
             }
         }
     }
 };
 
 const calcBounds = (allPeople: Array<Person>, height: number, width: number) => {
+    const padding = 2;
     allPeople.forEach((p) => {
-        if (p.x > width || p.x < 0) {
+        if (p.x + padding > width) {
+            p.x = width - padding;
+            p.dx = p.dx * (-1 * simParameters.boundElasticity);
+        } else if (p.x < padding) {
+            p.x = padding;
             p.dx = p.dx * (-1 * simParameters.boundElasticity);
         }
-        if (p.y > height || p.y < 0) {
+        if (p.y + padding > height) {
+            p.y = height - padding;
+            p.dy = p.dy * (-1 * simParameters.boundElasticity);
+        } else if (p.y < padding) {
+            p.y = padding;
             p.dy = p.dy * (-1 * simParameters.boundElasticity);
         }
     });
@@ -64,7 +74,9 @@ export class World {
     pArray: Array<Person>;
     started: boolean;
     totalElergy: number;
-    constructor(height: number = 500, width: number = 500) {
+    totalInfected: number;
+    animationFrameID: number;
+    constructor(height = 500, width = 500) {
         this.started = false;
         this.canvas = document.getElementById('worldCanvas') as HTMLCanvasElement;
         this.canvas.height = height;
@@ -72,9 +84,10 @@ export class World {
         this.ctx = this.canvas.getContext('2d');
         this.pArray = [];
         this.totalElergy = null;
+        this.totalInfected = simParameters.numberInfected;
         let leftToInfect = simParameters.numberInfected;
         for (let i = 0; i < simParameters.numberOfP; i++) {
-            this.pArray.push(new Person(Math.random() * width, Math.random() * height, (Math.random() * 1) - 1 / 2, (Math.random() * 1) - 1 / 2, leftToInfect > 0));
+            this.pArray.push(new Person(Math.random() * width, Math.random() * height, (Math.random() * 1) - 1 / 2, (Math.random() * 1) - 1 / 2, leftToInfect > 0 ? 1 : 0));
             leftToInfect--;
         }
     }
@@ -83,13 +96,20 @@ export class World {
             return;
         }
         calcBounds(this.pArray, this.canvas.height, this.canvas.width);
-        calcGravity(this.pArray);
-        this.totalElergy = 0;
+        calcInteractions(this.pArray);
+        let totalElergyCounter = 0;
+        let totalInfectedCounter = 0;
         this.pArray.forEach((p) => {
-            this.totalElergy += Math.sqrt(Math.pow(p.dx, 2) + Math.pow(p.dy, 2));
+            totalElergyCounter += Math.sqrt(Math.pow(p.dx, 2) + Math.pow(p.dy, 2));
+            if (p.status === 1) {
+                totalInfectedCounter++;
+            }
             p.step(simParameters.drag);
         });
+        this.totalElergy = totalElergyCounter;
+        this.totalInfected = totalInfectedCounter;
         this.draw();
+        simParameters.timeStep++;
         window.requestAnimationFrame(this.step.bind(this));
     }
     draw() {
@@ -97,14 +117,20 @@ export class World {
         this.pArray.forEach((p) => {
             p.draw(this.ctx);
         });
-        totalEElement.innerHTML = String(this.totalElergy.toFixed(2));
+        totalEnergyElement.innerHTML = String(this.totalElergy.toFixed(2));
+        timeStepElement.innerHTML = String(simParameters.timeStep);
+        timeInfectedElement.innerHTML = String(this.totalInfected);
     }
     start() {
         if (this.started) {
             return;
         }
         this.started = true;
-        window.requestAnimationFrame(this.step.bind(this));
+        this.animationFrameID = window.requestAnimationFrame(this.step.bind(this));
     }
-
+    stop() {
+        this.started = false;
+        window.cancelAnimationFrame(this.animationFrameID);
+        this.animationFrameID = null;
+    }
 }

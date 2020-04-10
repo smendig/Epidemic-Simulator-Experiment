@@ -1,11 +1,25 @@
 <html>
+
 <head>
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
-    <h1>Test</h1>
-    <canvas id="worldCanvas"></canvas>
-    <span id="totalE"></span>
+    <div class="c1">
+        <div class="c2">
+            <h1>Test</h1>
+            <div>
+                <button id="resetBtn">Reset</button>
+            </div>
+            <div>
+                <div><span>Kinetic energy: </span><span id="totalEnergy"></span></div>
+                <div><span>Total infected: </span><span id="totalInfected"></span></div>
+                <div><span>Time step: </span><span id="timeStep"></span></div>
+            </div>
+        </div>
+        <div class="c2"><canvas id="worldCanvas"></canvas></div>
+    </div>
     <script src="/main.bundle.js"></script>
 </body>
+
 </html>

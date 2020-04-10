@@ -1,1 +1,7 @@
 #worldCanvas { border: 1px solid; }
+
+.c1 {display: flex;}
+
+.c2 {flex: 1 1 auto;}
+
+canvas {width: 100%}
