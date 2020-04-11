@@ -10,14 +10,27 @@
             <h1>Test</h1>
             <div>
                 <button id="resetBtn">Reset</button>
+                <button id="socialDistancingBtn">Toggle Social Distancing</button>
             </div>
             <div>
-                <div><span>Kinetic energy: </span><span id="totalEnergy"></span></div>
-                <div><span>Total infected: </span><span id="totalInfected"></span></div>
+                <!-- <div><span>Kinetic energy: </span><span id="totalEnergy"></span></div> -->
+
+                <div><span>Total infected: </span><span id="totalInfected">0</span></div>
+                <div><span>Number in healthcare: </span><span id="totalHealthcare">0</span></div>
+                <div><span>Total deaths: </span><span id="totalDeaths">0</span></div>
+                <div><span>Death rate: </span><span id="deathrate">0</span><span>%</span></div>
                 <div><span>Time step: </span><span id="timeStep"></span></div>
             </div>
         </div>
-        <div class="c2"><canvas id="worldCanvas"></canvas></div>
+        <div class="c2">
+            <canvas id="worldCanvas"></canvas>
+            <canvas id="grapthCanvas"></canvas>
+            <div id="colorLegend">
+                <div><div style="background-color: orangered;" class="colorSample"></div><span>Ill</span></div>
+                <div><div style="background-color: maroon;" class="colorSample"></div><span>Death</span></div>
+                <div><div style="background-color: blue;" class="colorSample"></div><span>Immunized</span></div>
+            </div>
+        </div>
     </div>
     <script src="/main.bundle.js"></script>
 </body>

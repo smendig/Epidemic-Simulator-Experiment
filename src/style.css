@@ -1,7 +1,13 @@
-#worldCanvas { border: 1px solid; }
 
 .c1 {display: flex;}
 
 .c2 {flex: 1 1 auto;}
+.c2:nth-child(1) {
+    flex: 1 1 120%;
+}
 
-canvas {width: 100%}
+canvas {width: 100%;border: 1px solid;width:500px;height:500px;}
+#grapthCanvas {height:250px;}
+#colorLegend {display: flex}
+#colorLegend>div{display: flex; margin: 2px 3px;}
+#colorLegend .colorSample{width: 15px; height: 15px; margin: 0px 3px 0 20px;}

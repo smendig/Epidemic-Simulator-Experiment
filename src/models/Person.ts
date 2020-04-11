@@ -1,56 +1,129 @@
 'use strict';
-import simParameters from '../simParameters';
+import SimulationParameters from './SimulationParameters';
 
 const rad = 2;
 const piRad = 2 * Math.PI;
 
 export class Person {
+    simParams: SimulationParameters;
     x: number;
     y: number;
     dx: number;
     dy: number;
-    status: number;
+    private status: number;
+    // 0 = not infected
+    // 10 = incubationPeriod
+    // 11 = Ill
+    // 12 = Ill with healthcare treatment
+    // 20 = immunized
+    // 30 = death
     infectedTime: number;
-    constructor(x = 0, y = 0, dx = 0, dy = 0, status = 0) {
+    illTime: number;
+    outcomeTime: number;
+    constructor(simParams: SimulationParameters, x = 0, y = 0, dx = 0, dy = 0) {
+        this.simParams = simParams;
         this.x = x;
         this.y = y;
         this.dx = dx;
         this.dy = dy;
-        this.status = status; // 0 = not infected, 1 = infected, 2 = immunized
-        this.infectedTime = null;
+        this.status = 0;
     }
-    step(drag: number = 1) {
-        this.dx = this.dx * drag;
-        this.dy = this.dy * drag;
+    step() {
+        if (this.simParams.drag !== 1) {
+            this.dx = this.dx * this.simParams.drag;
+            this.dy = this.dy * this.simParams.drag;
+        }
         this.x += this.dx;
         this.y += this.dy;
-        if (this.status === 1 && (simParameters.timeStep - this.infectedTime) > simParameters.infectionTime) {
-            this.status = 2;
+        if (this.isInIncubationPeriod() && this.simParams.timeStep > this.illTime) {
+            return this.setIll();
         }
+        if (this.isIll() && this.simParams.timeStep > this.outcomeTime) {
+            this.setOutcome();
+        }
+    }
+    infectChance(infectedTime: number, distance: number) {
+        const rnd = Math.random();
+        if (distance < this.simParams.contactInfectRadius && rnd < this.simParams.contactInfectRadius) {
+            return this.infect(infectedTime);
+        }
+        if (rnd < this.simParams.distanceInfectionProbability) {
+            this.infect(infectedTime);
+        }
+    }
+    isUncontaminated() {
+        return this.status === 0;
+    }
+    isInIncubationPeriod() {
+        return this.status === 10;
+    }
+    isIll() {
+        return this.status === 11;
+    }
+    isUsingHealthcare() {
+        return this.status === 12;
+    }
+    isInfectious() {
+        return this.status === 10 || this.status === 11 || this.status === 12;
+    }
+    isImmunized() {
+        return this.status === 20;
+    }
+    isDead() {
+        return this.status === 30;
     }
     infect(infectedTime: number) {
-        if (this.status === 0) {
-            this.status = 1;
-            this.infectedTime = infectedTime;
-        }
+        this.status = 10;
+        this.infectedTime = infectedTime;
+        const incubationPeriodRnd = this.simParams.incubationPeriod + Math.round((Math.random() * (this.simParams.incubationPeriod / 4)) - this.simParams.incubationPeriod / 8);
+        this.illTime = infectedTime + incubationPeriodRnd;
     }
-    draw(ctx: CanvasRenderingContext2D) {
+    setIll() {
+        this.status = 11;
+        const illPeriodRnd = this.simParams.illPeriod + Math.round((Math.random() * (this.simParams.illPeriod / 4)) - this.simParams.illPeriod / 8);
+        this.outcomeTime = this.illTime + illPeriodRnd;
+    }
+    setUseHealthcare() {
+        this.status = 12;
+    }
+    setOutcome() {
+        if (Math.random() < (this.status === 12 ? this.simParams.deathRateWithhealthcare : this.simParams.deathRate)) {
+            this.status = 30;
+            return;
+        }
+        this.status = 20;
+    }
+    setRndPosition() {
+        this.x = Math.random() * this.simParams.width;
+        this.y = Math.random() * this.simParams.height;
+    }
+    setRndVelocity() {
+        this.dx = Math.random() * 1 - 1 / 2;
+        this.dy = Math.random() * 1 - 1 / 2;
+    }
+    render(ctx: CanvasRenderingContext2D) {
         ctx.beginPath();
         ctx.arc(this.x, this.y, rad, 0, piRad, false);
         switch (this.status) {
             case 0:
+                ctx.fillStyle = 'lime';
+                break;
+            case 10:
                 ctx.fillStyle = 'green';
                 break;
-            case 1:
-                ctx.fillStyle = 'red';
+            case 11:
+                ctx.fillStyle = 'orangered';
                 break;
-            case 2:
+            case 12:
+                ctx.fillStyle = 'orangered';
+                break;
+            case 20:
                 ctx.fillStyle = 'blue';
+                break;
+            case 30:
+                ctx.fillStyle = 'maroon';
                 break;
         }
         ctx.fill();
-        // ctx.lineWidth = 5;
-        // ctx.strokeStyle = '#003300';
-        // ctx.stroke();
     }
 }

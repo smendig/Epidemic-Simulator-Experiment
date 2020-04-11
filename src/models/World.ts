@@ -1,125 +1,193 @@
 'use strict';
-import simParameters from '../simParameters';
+import SimulationParameters from './SimulationParameters';
 import { Person } from './Person';
 
-const totalEnergyElement = document.getElementById('totalEnergy') as HTMLSpanElement;
-const timeInfectedElement = document.getElementById('totalInfected') as HTMLSpanElement;
-const timeStepElement = document.getElementById('timeStep') as HTMLSpanElement;
-
-
-const calcInteractions = (allPeople: Array<Person>) => {
-    const infection = (p1: Person, p2: Person, distance: number) => {
-        const interactionOutcome = () => Math.random() < simParameters.infectionProbability;
-        if (distance > simParameters.infectRadius) {
-            return;
+export class World {
+    private simParams: SimulationParameters;
+    canvas: HTMLCanvasElement;
+    ctx: CanvasRenderingContext2D;
+    graphCanvas: HTMLCanvasElement;
+    graphCtx: CanvasRenderingContext2D;
+    pArray: Array<Person>;
+    started: boolean;
+    // totalElergy: number;
+    totalUsingHealthCare: number;
+    totalInfected: number;
+    totalImmunized: number;
+    totalDead: number;
+    animationFrameID: number;
+    constructor(canvas: HTMLCanvasElement, graphCanvas: HTMLCanvasElement, numberInfected = 1) {
+        this.simParams = new SimulationParameters();
+        this.started = false;
+        this.canvas = canvas;
+        this.canvas.height = this.simParams.height;
+        this.canvas.width = this.simParams.width;
+        this.ctx = this.canvas.getContext('2d');
+        this.graphCanvas = graphCanvas;
+        this.graphCanvas.height = this.simParams.height / 2;
+        this.graphCanvas.width = this.simParams.width;
+        this.graphCtx = this.graphCanvas.getContext('2d');
+        this.pArray = [];
+        // this.totalElergy = null;
+        this.totalInfected = numberInfected;
+        this.totalImmunized = 0;
+        this.totalDead = 0;
+        let leftToInfect = numberInfected;
+        for (let i = 0; i < this.simParams.numberOfP; i++) {
+            const p = new Person(this.simParams);
+            if (leftToInfect > 0) {
+                p.infect(this.simParams.timeStep);
+                leftToInfect--;
+            }
+            p.setRndPosition();
+            p.setRndVelocity();
+            this.pArray.push(p);
         }
-        if (p1.status === 1 && p2.status === 0 && interactionOutcome()) {
-            p2.infect(simParameters.timeStep);
-        }
-        if (p2.status === 1 && p1.status === 0 && interactionOutcome()) {
-            p1.infect(simParameters.timeStep);
-        }
-    };
-    const motion = (p1: Person, p2: Person, distance: number, distanceSquare: number, diffX: number, diffY: number) => {
-        if (distance - 1 > rad / 2 + rad / 2) {
-            const totalForce = simParameters.gForce / distanceSquare;
-            const deltaX = totalForce * diffX / distance;
-            const deltaY = totalForce * diffY / distance;
-            p1.dx += deltaX;
-            p1.dy += deltaY;
-            p2.dx -= deltaX;
-            p2.dy -= deltaY;
-        }
-    };
-    const rad = 2;
-    for (let i = 0; i < allPeople.length; i++) {
-        const p1 = allPeople[i];
-        for (let j = i + 1; j < allPeople.length; j++) {
-            const p2 = allPeople[j];
-            if (i !== j) {
+    }
+    calcInteractions() {
+        const infection = (p1: Person, p2: Person, distance: number) => {
+            if (distance < this.simParams.distanceInfectRadius && p1.isInfectious() && p2.isUncontaminated()) {
+                p2.infectChance(this.simParams.timeStep, distance);
+            }
+            if (distance < this.simParams.distanceInfectRadius && p2.isInfectious() && p1.isUncontaminated()) {
+                p1.infectChance(this.simParams.timeStep, distance);
+            }
+        };
+        const motion = (p1: Person, p2: Person, distance: number, distanceSquare: number, diffX: number, diffY: number) => {
+            const rad = 2;
+            if (distance - 1 > rad / 2 + rad / 2) {
+                const totalForce = this.simParams.gForce / distanceSquare;
+                const deltaX = totalForce * diffX / distance;
+                const deltaY = totalForce * diffY / distance;
+                p1.dx += deltaX;
+                p1.dy += deltaY;
+                p2.dx -= deltaX;
+                p2.dy -= deltaY;
+            }
+        };
+        const calcBounds = (p: Person) => {
+            const padding = 2;
+            if (p.x + padding > this.canvas.width) {
+                p.x = this.canvas.width - padding;
+                p.dx = p.dx * (-1 * this.simParams.boundElasticity);
+            } else if (p.x < padding) {
+                p.x = padding;
+                p.dx = p.dx * (-1 * this.simParams.boundElasticity);
+            }
+            if (p.y + padding > this.canvas.height) {
+                p.y = this.canvas.height - padding;
+                p.dy = p.dy * (-1 * this.simParams.boundElasticity);
+            } else if (p.y < padding) {
+                p.y = padding;
+                p.dy = p.dy * (-1 * this.simParams.boundElasticity);
+            }
+        };
+        // let totalElergyCounter = 0;
+        let totalInfectedCounter = 0;
+        let totalImmunizedCounter = 0;
+        let totalUsingHealthCareCounter = 0;
+        let totalDeadCounter = 0;
+        for (let i = 0; i < this.pArray.length; i++) {
+            const p1 = this.pArray[i];
+            if (i === 0) {
+                p1.step();
+                calcBounds(p1);
+            }
+            for (let j = i + 1; j < this.pArray.length; j++) {
+                const p2 = this.pArray[j];
+                if (i === 0) {
+                    p2.step();
+                    calcBounds(p2);
+                }
                 const diffX = p2.x - p1.x;
                 const diffY = p2.y - p1.y;
                 const distanceSquare = diffX * diffX + diffY * diffY;
                 const distance = Math.pow(distanceSquare, 0.5);
-                motion(p1, p2, distance, distanceSquare, diffX, diffY);
+                if (this.simParams.gForce !== 0) {
+                    motion(p1, p2, distance, distanceSquare, diffX, diffY);
+                }
                 infection(p1, p2, distance);
             }
+            // totalElergyCounter += Math.sqrt(Math.pow(p.dx, 2) + Math.pow(p.dy, 2));
+            if (p1.isUsingHealthcare()) {
+                totalUsingHealthCareCounter++;
+            }
+            if (p1.isIll()) {
+                // if (this.totalUsingHealthCare < this.simParams.healthcareCapacity) {
+                //     p1.setUseHealthcare();
+                // }
+                totalInfectedCounter++;
+            } else if ((p1.isImmunized())) {
+                totalImmunizedCounter++;
+            } else if (p1.isDead()) {
+                totalDeadCounter++;
+            }
         }
-    }
-};
-
-const calcBounds = (allPeople: Array<Person>, height: number, width: number) => {
-    const padding = 2;
-    allPeople.forEach((p) => {
-        if (p.x + padding > width) {
-            p.x = width - padding;
-            p.dx = p.dx * (-1 * simParameters.boundElasticity);
-        } else if (p.x < padding) {
-            p.x = padding;
-            p.dx = p.dx * (-1 * simParameters.boundElasticity);
-        }
-        if (p.y + padding > height) {
-            p.y = height - padding;
-            p.dy = p.dy * (-1 * simParameters.boundElasticity);
-        } else if (p.y < padding) {
-            p.y = padding;
-            p.dy = p.dy * (-1 * simParameters.boundElasticity);
-        }
-    });
-};
-
-export class World {
-    canvas: HTMLCanvasElement;
-    ctx: CanvasRenderingContext2D;
-    pArray: Array<Person>;
-    started: boolean;
-    totalElergy: number;
-    totalInfected: number;
-    animationFrameID: number;
-    constructor(height = 500, width = 500) {
-        this.started = false;
-        this.canvas = document.getElementById('worldCanvas') as HTMLCanvasElement;
-        this.canvas.height = height;
-        this.canvas.width = width;
-        this.ctx = this.canvas.getContext('2d');
-        this.pArray = [];
-        this.totalElergy = null;
-        this.totalInfected = simParameters.numberInfected;
-        let leftToInfect = simParameters.numberInfected;
-        for (let i = 0; i < simParameters.numberOfP; i++) {
-            this.pArray.push(new Person(Math.random() * width, Math.random() * height, (Math.random() * 1) - 1 / 2, (Math.random() * 1) - 1 / 2, leftToInfect > 0 ? 1 : 0));
-            leftToInfect--;
-        }
+        // this.totalElergy = totalElergyCounter;
+        this.totalInfected = totalInfectedCounter;
+        this.totalImmunized = totalImmunizedCounter;
+        this.totalDead = totalDeadCounter;
+        this.totalUsingHealthCare = totalUsingHealthCareCounter;
     }
     step() {
         if (!this.started) {
             return;
         }
-        calcBounds(this.pArray, this.canvas.height, this.canvas.width);
-        calcInteractions(this.pArray);
-        let totalElergyCounter = 0;
-        let totalInfectedCounter = 0;
-        this.pArray.forEach((p) => {
-            totalElergyCounter += Math.sqrt(Math.pow(p.dx, 2) + Math.pow(p.dy, 2));
-            if (p.status === 1) {
-                totalInfectedCounter++;
-            }
-            p.step(simParameters.drag);
-        });
-        this.totalElergy = totalElergyCounter;
-        this.totalInfected = totalInfectedCounter;
-        this.draw();
-        simParameters.timeStep++;
+        this.calcInteractions();
+        this.render();
+        this.simParams.timeStep++;
         window.requestAnimationFrame(this.step.bind(this));
     }
-    draw() {
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        this.pArray.forEach((p) => {
-            p.draw(this.ctx);
-        });
-        totalEnergyElement.innerHTML = String(this.totalElergy.toFixed(2));
-        timeStepElement.innerHTML = String(simParameters.timeStep);
-        timeInfectedElement.innerHTML = String(this.totalInfected);
+    render() {
+        const drawWorld = () => {
+            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+            this.pArray.forEach((p) => {
+                p.render(this.ctx);
+            });
+        };
+        const drawGraph = () => {
+            const imagedata = this.graphCtx.getImageData(1, 0, this.graphCtx.canvas.width - 1, this.graphCtx.canvas.height);
+            this.graphCtx.putImageData(imagedata, 0, 0);
+            this.graphCtx.clearRect(this.graphCtx.canvas.width - 1, 0, 1, this.graphCtx.canvas.height);
+
+            const fn1 = (n: number, from: number, color: string) => {
+                this.graphCtx.beginPath();
+                this.graphCtx.moveTo(this.graphCanvas.width - 1, from);
+                this.graphCtx.lineTo(this.graphCanvas.width - 1, Math.round(n * this.graphCanvas.height / this.simParams.numberOfP));
+                this.graphCtx.strokeStyle = color;
+                this.graphCtx.stroke();
+            };
+            const fn2 = (n: number, from: number, color: string) => {
+                const to = Math.round(n * this.graphCanvas.height / this.simParams.numberOfP);
+                this.graphCtx.beginPath();
+                this.graphCtx.moveTo(this.graphCanvas.width - 1, this.graphCanvas.height - from);
+                this.graphCtx.lineTo(this.graphCanvas.width - 1, this.graphCanvas.height - from - to);
+                this.graphCtx.strokeStyle = color;
+                this.graphCtx.stroke();
+                return to;
+            };
+            fn1(this.totalImmunized, 0, 'blue');
+            let from = fn2(this.totalDead, 0, 'maroon');
+            fn2(this.totalInfected, from, 'red');
+        };
+        drawWorld();
+        if (this.simParams.timeStep % 5 === 0) {
+            drawGraph();
+        }
+    }
+    setState(type: string) {
+        switch (type) {
+            case 'socialDistancing':
+                this.simParams.setSocialDistancing();
+                break;
+            default:
+                this.pArray.forEach(p => p.setRndVelocity());
+                this.simParams.setDefaultPhysics();
+
+        }
+    }
+    getState() {
+        return this.simParams.state;
     }
     start() {
         if (this.started) {
