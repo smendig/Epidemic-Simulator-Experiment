@@ -1,34 +1,70 @@
 <html>
 
 <head>
+    <title>Epidemic Simulator Experiment</title>
+    <link href="https://fonts.googleapis.com/css2?family=Lato&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
     <div class="c1">
         <div class="c2">
-            <h1>Test</h1>
-            <div>
+            <h1>Epidemic Simulator Experiment</h1>
+            <div id="infoPanel">
+                <div><span>Population: </span><span id="population">0</span></div>
+                <div><span>Healthcare capacity: </span><span id="healthcareCapacity">0</span></div>
+                <div><span>Total infected: </span><span id="totalInfected">0</span></div>
+                <div><span>Number in healthcare: </span><span id="totalHealthcare">0</span></div>
+                <div><span>Total deaths: </span><span id="totalDeaths">0</span></div>
+                <div><span>Death rate: </span><span id="deathrate">0</span></div>
+            </div>
+            <div id="controlBtns">
                 <button id="resetBtn">Reset</button>
                 <button id="socialDistancingBtn">Toggle Social Distancing</button>
             </div>
             <div>
-                <!-- <div><span>Kinetic energy: </span><span id="totalEnergy"></span></div> -->
-
-                <div><span>Total infected: </span><span id="totalInfected">0</span></div>
-                <div><span>Number in healthcare: </span><span id="totalHealthcare">0</span></div>
-                <div><span>Total deaths: </span><span id="totalDeaths">0</span></div>
-                <div><span>Death rate: </span><span id="deathrate">0</span><span>%</span></div>
-                <div><span>Time step: </span><span id="timeStep"></span></div>
+                <h2>Parameter tweaks</h2>
+                <div class="tweaks">
+                    <div class="slidecontainer">
+                        <span>Population</span>
+                        <input type="range" min="1" max="1000" value="500" step="1" class="slider" id="populationRange">
+                        <span class="slideValue">500</span>
+                    </div>
+                    <div class="slidecontainer">
+                        <span>Healthcare capacity</span>
+                        <input type="range" min="0" max="1000" value="100" step="1" class="slider" id="healthcareRange">
+                        <span class="slideValue">100</span>
+                    </div>
+                    <div class="slidecontainer">
+                        <span>Gravity</span>
+                        <input type="range" min="-5" max="5" value="0" step="0.1" class="slider" id="gravityRange">
+                        <span class="slideValue">0</span>
+                    </div>
+                    <div class="slidecontainer">
+                        <span>Drag</span>
+                        <input type="range" min="0.5" max="1" value="1" step="0.01" class="slider" id="dragRange">
+                        <span class="slideValue">1</span>
+                    </div>
+                </div>
             </div>
         </div>
         <div class="c2">
             <canvas id="worldCanvas"></canvas>
             <canvas id="grapthCanvas"></canvas>
             <div id="colorLegend">
-                <div><div style="background-color: orangered;" class="colorSample"></div><span>Ill</span></div>
-                <div><div style="background-color: maroon;" class="colorSample"></div><span>Death</span></div>
-                <div><div style="background-color: blue;" class="colorSample"></div><span>Immunized</span></div>
+                <div>
+                    <div style="background-color: orangered;" class="colorSample"></div><span>Ill</span>
+                </div>
+                <div>
+                    <div style="background-color: #af2f00;" class="colorSample"></div><span>Ill (without
+                        healthcare)</span>
+                </div>
+                <div>
+                    <div style="background-color: #000000;" class="colorSample"></div><span>Dead</span>
+                </div>
+                <div>
+                    <div style="background-color: #03a9f4;" class="colorSample"></div><span>Immunized</span>
+                </div>
             </div>
         </div>
     </div>

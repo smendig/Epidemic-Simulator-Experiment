@@ -3,7 +3,7 @@ import SimulationParameters from './SimulationParameters';
 import { Person } from './Person';
 
 export class World {
-    private simParams: SimulationParameters;
+    simParams: SimulationParameters;
     canvas: HTMLCanvasElement;
     ctx: CanvasRenderingContext2D;
     graphCanvas: HTMLCanvasElement;
@@ -11,13 +11,14 @@ export class World {
     pArray: Array<Person>;
     started: boolean;
     // totalElergy: number;
-    totalUsingHealthCare: number;
-    totalInfected: number;
+    totalIllUsingHealthCare: number;
+    totalIllNotUsingHealthCare: number;
+    totalIll: number;
     totalImmunized: number;
     totalDead: number;
     animationFrameID: number;
-    constructor(canvas: HTMLCanvasElement, graphCanvas: HTMLCanvasElement, numberInfected = 1) {
-        this.simParams = new SimulationParameters();
+    constructor(population: number = 500, canvas: HTMLCanvasElement, graphCanvas: HTMLCanvasElement, numberInfected = 1) {
+        this.simParams = new SimulationParameters(population);
         this.started = false;
         this.canvas = canvas;
         this.canvas.height = this.simParams.height;
@@ -29,11 +30,11 @@ export class World {
         this.graphCtx = this.graphCanvas.getContext('2d');
         this.pArray = [];
         // this.totalElergy = null;
-        this.totalInfected = numberInfected;
+        this.totalIll = numberInfected;
         this.totalImmunized = 0;
         this.totalDead = 0;
         let leftToInfect = numberInfected;
-        for (let i = 0; i < this.simParams.numberOfP; i++) {
+        for (let i = 0; i < this.simParams.population; i++) {
             const p = new Person(this.simParams);
             if (leftToInfect > 0) {
                 p.infect(this.simParams.timeStep);
@@ -83,9 +84,10 @@ export class World {
             }
         };
         // let totalElergyCounter = 0;
-        let totalInfectedCounter = 0;
+        let totalIllCounter = 0;
         let totalImmunizedCounter = 0;
-        let totalUsingHealthCareCounter = 0;
+        let totalIllUsingHealthCareCounter = 0;
+        let totalIllNotUsingHealthCareCounter = 0;
         let totalDeadCounter = 0;
         for (let i = 0; i < this.pArray.length; i++) {
             const p1 = this.pArray[i];
@@ -109,14 +111,17 @@ export class World {
                 infection(p1, p2, distance);
             }
             // totalElergyCounter += Math.sqrt(Math.pow(p.dx, 2) + Math.pow(p.dy, 2));
-            if (p1.isUsingHealthcare()) {
-                totalUsingHealthCareCounter++;
-            }
             if (p1.isIll()) {
-                // if (this.totalUsingHealthCare < this.simParams.healthcareCapacity) {
-                //     p1.setUseHealthcare();
-                // }
-                totalInfectedCounter++;
+                if (!p1.isUsingHealthcare() && this.totalIllUsingHealthCare < this.simParams.healthcareCapacity) {
+                    p1.setUseHealthcare();
+                    this.totalIllUsingHealthCare++;
+                }
+                if (p1.isUsingHealthcare()) {
+                    totalIllUsingHealthCareCounter++;
+                } else {
+                    totalIllNotUsingHealthCareCounter++;
+                }
+                totalIllCounter++;
             } else if ((p1.isImmunized())) {
                 totalImmunizedCounter++;
             } else if (p1.isDead()) {
@@ -124,10 +129,11 @@ export class World {
             }
         }
         // this.totalElergy = totalElergyCounter;
-        this.totalInfected = totalInfectedCounter;
+        this.totalIll = totalIllCounter;
         this.totalImmunized = totalImmunizedCounter;
         this.totalDead = totalDeadCounter;
-        this.totalUsingHealthCare = totalUsingHealthCareCounter;
+        this.totalIllUsingHealthCare = totalIllUsingHealthCareCounter;
+        this.totalIllNotUsingHealthCare = totalIllNotUsingHealthCareCounter;
     }
     step() {
         if (!this.started) {
@@ -151,14 +157,16 @@ export class World {
             this.graphCtx.clearRect(this.graphCtx.canvas.width - 1, 0, 1, this.graphCtx.canvas.height);
 
             const fn1 = (n: number, from: number, color: string) => {
+                const to = Math.round(n * this.graphCanvas.height / this.simParams.population);
                 this.graphCtx.beginPath();
                 this.graphCtx.moveTo(this.graphCanvas.width - 1, from);
-                this.graphCtx.lineTo(this.graphCanvas.width - 1, Math.round(n * this.graphCanvas.height / this.simParams.numberOfP));
+                this.graphCtx.lineTo(this.graphCanvas.width - 1, to + from);
                 this.graphCtx.strokeStyle = color;
                 this.graphCtx.stroke();
+                return to;
             };
             const fn2 = (n: number, from: number, color: string) => {
-                const to = Math.round(n * this.graphCanvas.height / this.simParams.numberOfP);
+                const to = Math.round(n * this.graphCanvas.height / this.simParams.population);
                 this.graphCtx.beginPath();
                 this.graphCtx.moveTo(this.graphCanvas.width - 1, this.graphCanvas.height - from);
                 this.graphCtx.lineTo(this.graphCanvas.width - 1, this.graphCanvas.height - from - to);
@@ -166,9 +174,15 @@ export class World {
                 this.graphCtx.stroke();
                 return to;
             };
-            fn1(this.totalImmunized, 0, 'blue');
-            let from = fn2(this.totalDead, 0, 'maroon');
-            fn2(this.totalInfected, from, 'red');
+            let from = fn1(this.totalImmunized, 0, '#03a9f4');
+            from = fn1(this.totalDead, from, '#000000');
+            from = fn2(this.totalIllUsingHealthCare, 0, 'orangered');
+            fn2(this.totalIllNotUsingHealthCare, from, '#af2f00');
+            this.graphCtx.beginPath();
+            this.graphCtx.moveTo(this.graphCanvas.width - 7, this.graphCanvas.height - Math.round(this.simParams.healthcareCapacity * this.graphCanvas.height / this.simParams.population));
+            this.graphCtx.lineTo(this.graphCanvas.width, this.graphCanvas.height - Math.round(this.simParams.healthcareCapacity * this.graphCanvas.height / this.simParams.population));
+            this.graphCtx.strokeStyle = 'lightgreen';
+            this.graphCtx.stroke();
         };
         drawWorld();
         if (this.simParams.timeStep % 5 === 0) {
@@ -181,7 +195,14 @@ export class World {
                 this.simParams.setSocialDistancing();
                 break;
             default:
-                this.pArray.forEach(p => p.setRndVelocity());
+                this.pArray.forEach(p => {
+                    if (!p.isDead()) {
+                        p.setRndVelocity();
+                    } else {
+                        p.dx = 0;
+                        p.dy = 0;
+                    }
+                });
                 this.simParams.setDefaultPhysics();
 
         }

@@ -58,7 +58,7 @@ export class Person {
         return this.status === 10;
     }
     isIll() {
-        return this.status === 11;
+        return this.status === 11 || this.status === 12;
     }
     isUsingHealthcare() {
         return this.status === 12;
@@ -88,6 +88,8 @@ export class Person {
     }
     setOutcome() {
         if (Math.random() < (this.status === 12 ? this.simParams.deathRateWithhealthcare : this.simParams.deathRate)) {
+            this.dx = 0;
+            this.dy = 0;
             this.status = 30;
             return;
         }
@@ -118,10 +120,10 @@ export class Person {
                 ctx.fillStyle = 'orangered';
                 break;
             case 20:
-                ctx.fillStyle = 'blue';
+                ctx.fillStyle = '#03a9f4';
                 break;
             case 30:
-                ctx.fillStyle = 'maroon';
+                ctx.fillStyle = '#000000';
                 break;
         }
         ctx.fill();

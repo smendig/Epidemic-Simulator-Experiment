@@ -1,6 +1,6 @@
 'use strict';
 export default class SimulationParameters {
-    numberOfP: number;
+    population: number;
     gForce: number;
     boundElasticity: number;
     drag: number;
@@ -17,14 +17,14 @@ export default class SimulationParameters {
     width: number;
     height: number;
     state: string;
-    constructor() {
+    constructor(population: number = 500) {
         this.timeStep = 0;
         this.width = 500;
         this.height = 500;
+        this.population = population;
         this.setDefaultPhysics();
     }
     setDefaultPhysics() {
-        this.numberOfP = 500;
         this.gForce = 0;
         this.boundElasticity = 0.99;
         this.drag = 1;
@@ -35,12 +35,12 @@ export default class SimulationParameters {
         this.incubationPeriod = 300;
         this.illPeriod = 700;
         this.healthcareCapacity = 100;
-        this.deathRate = 0.15;
+        this.deathRate = 0.35;
         this.deathRateWithhealthcare = 0.02;
         this.state = 'default';
     }
     setSocialDistancing() {
-        this.gForce = -10;
+        this.gForce = -5;
         this.drag = 0.95;
         this.state = 'socialDistancing';
     }
