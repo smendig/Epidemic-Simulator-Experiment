@@ -1,0 +1,87 @@
+body {
+    font-family: 'Lato', sans-serif;
+}
+h1{
+   font-size: 27px;
+}
+.c1 {
+   display: flex;
+   max-width: 800px;
+    margin: auto;
+}
+.c2 {
+   flex: 1 1 auto;
+}
+.c2:nth-child(1) {
+    flex: 1 1 120%;
+    margin: 0px 10px;
+}
+#infoPanel>div{
+   display: flex;
+   justify-content: space-between;
+   align-items: center;
+}
+#infoPanel > div > span:nth-child(1) {
+   font-size: 20px;
+}
+#infoPanel > div > span:nth-child(2) {
+   color: #00897b;
+   font-size: 28px;
+}
+#controlBtns {
+   display: flex;
+    justify-content: space-evenly;
+   flex-wrap: wrap;
+   margin: 35px 0px 5px 0px;
+}
+#controlBtns button {
+   font-size: 20px;
+    padding: 12px 10px;
+    margin: 10px 12px;
+   border: 1px solid #555;
+    background-color: #00897b;
+   color:#fff;
+   cursor: pointer;
+   transition: background-color 0.1s;
+}
+#controlBtns button:hover{
+   background-color: #006b60;
+}
+canvas {
+   border: 1px solid;
+   width:500px;
+   height:500px;
+}
+#grapthCanvas {
+   height:250px;
+}
+#colorLegend {
+   display: flex
+}
+#colorLegend>div{
+   display: flex;
+    margin: 2px 3px;
+}
+#colorLegend .colorSample{
+   width: 15px;
+    height: 15px;
+    margin: 0px 3px 0 20px;
+}
+.slidecontainer {
+   display: flex
+}
+.slidecontainer > * {
+   flex: 0 1 auto;
+   align-items: center;
+}
+.slidecontainer > input {
+   flex: 2 1 auto;
+}
+.slidecontainer > span:nth-child(1) {
+   flex: 0 1 80px;
+    margin: 2px 3px;
+}
+.slidecontainer > span{
+   flex: 0 1 30px;
+    margin: 2px 3px;
+}
